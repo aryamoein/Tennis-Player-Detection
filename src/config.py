@@ -1,0 +1,66 @@
+from pathlib import Path
+
+
+class Config:
+    """
+    Central place for all tunable settings.
+
+    Optimized for Raspberry Pi Zero 2 W (64-bit OS).
+    """
+
+    # ------------------------------------------------------------
+    # Video source
+    # ------------------------------------------------------------
+    # camera index (0, 1, ...) for a USB camera.
+    # Or set CAMERA_INDEX to None and point VIDEO_PATH
+    # at a file to run from a video instead.
+    CAMERA_INDEX = 0
+
+    VIDEO_PATH = Path("videos") / "test.mp4"
+
+    CAPTURE_WIDTH = 640
+    CAPTURE_HEIGHT = 480
+    CAPTURE_FPS = 30
+    USE_MJPEG = True
+
+    # ------------------------------------------------------------
+    # Detection model
+    # ------------------------------------------------------------
+    # Supported extensions:
+    #   .tflite -> TFLiteDetector (fast, recommended on the Pi)
+    #   .onnx   -> YOLODetector   (fallback)
+    MODEL_FILE = Path("models") / "ssd_mobilenet_v2_coco_int8_300.tflite"
+
+    # Inference resolution. 320 is a good balance for the
+    # Pi Zero 2 W. Use 224 for even more speed.
+    INFERENCE_SIZE = 320
+
+    # Number of inference threads (Pi Zero 2 W has 4 cores).
+    THREADS = 4
+
+    CONFIDENCE_THRESHOLD = 0.5
+
+    # Run inference on every (FRAME_SKIP + 1) frames.
+    # On skipped frames the last known position is held.
+    FRAME_SKIP = 0
+
+    # ------------------------------------------------------------
+    # Camera geometry
+    # ------------------------------------------------------------
+    HORIZONTAL_FOV = 90
+
+    @classmethod
+    def project_directory(cls):
+        return Path(__file__).resolve().parent.parent
+
+    @classmethod
+    def model_path(cls, project_directory=None):
+        if project_directory is None:
+            project_directory = cls.project_directory()
+        return project_directory / cls.MODEL_FILE
+
+    @classmethod
+    def video_path(cls, project_directory=None):
+        if project_directory is None:
+            project_directory = cls.project_directory()
+        return project_directory / cls.VIDEO_PATH

@@ -1,0 +1,425 @@
+import argparse
+
+import cv2
+
+from config import Config
+from capture import ThreadedCapture
+from detector import YOLODetector
+from tflite_detector import TFLiteDetector
+from geometry import CameraGeometry
+from vertical_angle import VerticalAngleCalculator
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Tennis player angle tracking (Pi Zero 2 W optimized)."
+    )
+
+    parser.add_argument(
+        "--camera",
+        type=int,
+        default=None,
+        help="Camera index to use (overrides config)."
+    )
+
+    parser.add_argument(
+        "--file",
+        default=None,
+        help="Run from a video file instead of a camera."
+    )
+
+    parser.add_argument(
+        "--model",
+        default=None,
+        help="Model file name inside models/ (e.g. yolov8n_int8_320.tflite)."
+    )
+
+    parser.add_argument(
+        "--threads",
+        type=int,
+        default=None,
+        help="Inference threads (overrides config)."
+    )
+
+    parser.add_argument(
+        "--skip",
+        type=int,
+        default=None,
+        help="Skip N frames between inferences (overrides config)."
+    )
+
+    return parser.parse_args()
+
+
+def create_detector(project_directory, model_file=None, threads=None):
+    """
+    Load the configured model.
+
+    Prefers TensorFlow Lite (fast on the Pi Zero 2 W)
+    and falls back to ONNX when TFLite is unavailable.
+
+    Args:
+        model_file:
+            Optional file name inside models/. When not given,
+            Config.MODEL_FILE is used (with an ONNX fallback).
+    """
+
+    if threads is None:
+        threads = Config.THREADS
+
+
+    def load_tflite(path):
+        """Try a TFLite model, falling back to ONNX on error."""
+
+        try:
+
+            detector = TFLiteDetector(
+                path,
+                threads=threads
+            )
+
+            print(f"Using TFLite engine: {path.name}")
+
+            return detector
+
+        except (ImportError, FileNotFoundError) as error:
+
+            print(
+                f"TFLite unavailable ({error}); "
+                "falling back to ONNX."
+            )
+
+        return None
+
+
+
+    if model_file is not None:
+
+        # Explicit model requested.
+        path = project_directory / "models" / model_file
+
+        if path.suffix.lower() == ".tflite":
+
+            detector = load_tflite(path)
+
+            if detector is not None:
+                return detector
+
+        print(f"Using ONNX engine: {path.name}")
+
+        return YOLODetector(path)
+
+
+
+    # Default model from config (TFLite preferred).
+
+    config_path = Config.model_path(project_directory)
+
+    if config_path.suffix.lower() == ".tflite":
+
+        detector = load_tflite(config_path)
+
+        if detector is not None:
+            return detector
+
+    onnx_path = (
+        project_directory
+        / "models"
+        / "yolov8n.onnx"
+    )
+
+    print(f"Using ONNX engine: {onnx_path.name}")
+
+    return YOLODetector(onnx_path)
+
+
+def get_capture(project_directory, camera_index, file_path):
+    """
+    Build the capture source.
+
+    file_path wins, then an explicit camera index,
+    then the camera index from config.
+    """
+
+    if file_path:
+
+        return ThreadedCapture(file_path)
+
+    return ThreadedCapture(
+        camera_index if camera_index is not None
+        else Config.CAMERA_INDEX,
+        width=Config.CAPTURE_WIDTH,
+        height=Config.CAPTURE_HEIGHT,
+        fps=Config.CAPTURE_FPS,
+        use_mjpeg=Config.USE_MJPEG
+    )
+
+
+def main(args):
+
+    project_directory = (
+        Config.project_directory()
+    )
+
+    detector = create_detector(
+        project_directory,
+        model_file=args.model,
+        threads=args.threads
+    )
+
+    capture = get_capture(
+        project_directory,
+        camera_index=args.camera,
+        file_path=args.file
+    )
+
+    geometry = CameraGeometry(
+        horizontal_fov=Config.HORIZONTAL_FOV
+    )
+
+    vertical_angle_calculator = (
+        VerticalAngleCalculator(
+            horizontal_fov=Config.HORIZONTAL_FOV
+        )
+    )
+
+    capture.start()
+
+    last_person = None
+
+    frame_index = 0
+
+    inference_every = (
+        (args.skip if args.skip is not None
+         else Config.FRAME_SKIP) + 1
+    )
+
+
+
+    while True:
+
+        frame = capture.read()
+
+        if frame is None:
+
+            if capture.is_file() and capture.finished():
+
+                print("Video ended")
+                break
+
+            # Camera/file not ready yet.
+            if cv2.waitKey(1) == ord("q"):
+                break
+
+            continue
+
+
+
+        # Run inference only every (FRAME_SKIP + 1) frames.
+        # On skipped frames we reuse the last known person box.
+
+        if frame_index % inference_every == 0:
+
+            person = detector.detect_person(
+                frame,
+                confidence_threshold=Config.CONFIDENCE_THRESHOLD
+            )
+
+            last_person = person
+
+        frame_index += 1
+
+
+
+        if last_person is None:
+
+            cv2.imshow(
+                "Tennis Player Detection",
+                frame
+            )
+
+            if cv2.waitKey(1) == ord("q"):
+                break
+
+            continue
+
+
+
+        # Bounding box
+
+        x1 = last_person["x1"]
+        y1 = last_person["y1"]
+
+        x2 = last_person["x2"]
+        y2 = last_person["y2"]
+
+
+        cv2.rectangle(
+            frame,
+            (x1, y1),
+            (x2, y2),
+            (0, 255, 0),
+            2
+        )
+
+
+
+        # Player center
+
+        player_x, player_y = (
+            geometry.get_player_center(
+                last_person
+            )
+        )
+
+
+
+        # Image center
+
+        image_x, image_y = (
+            geometry.get_image_center(
+                frame
+            )
+        )
+
+
+
+        # Calculate current angle
+
+        current_angle = (
+            geometry.calculate_horizontal_angle(
+                player_x,
+                image_x,
+                frame.shape[1]
+            )
+        )
+
+
+
+        # Head position (top of the detection box)
+
+        head_x = int((x1 + x2) / 2)
+
+        head_y = y1
+
+
+
+        # Calculate vertical angle
+
+        current_vertical_angle = (
+            vertical_angle_calculator.calculate_vertical_angle(
+                head_y,
+                image_y,
+                frame.shape[0],
+                frame.shape[1]
+            )
+        )
+
+
+
+        # -------------------------------
+        # PRINT REAL TIME ANGLE
+        # -------------------------------
+
+        print(
+            f"Current rotation: {current_angle:.2f} degrees | "
+            f"Vertical angle: {current_vertical_angle:.2f} degrees"
+        )
+
+
+
+        # Draw player center
+
+        cv2.circle(
+            frame,
+            (player_x, player_y),
+            5,
+            (0, 0, 255),
+            -1
+        )
+
+
+        # Draw image center
+
+        cv2.circle(
+            frame,
+            (image_x, image_y),
+            5,
+            (255, 0, 0),
+            -1
+        )
+
+
+
+        # Draw head point
+
+        cv2.circle(
+            frame,
+            (head_x, head_y),
+            5,
+            (0, 255, 0),
+            -1
+        )
+
+
+
+        # Draw line from image center to head
+
+        cv2.line(
+            frame,
+            (image_x, image_y),
+            (head_x, head_y),
+            (255, 0, 0),
+            2
+        )
+
+
+
+        # Display current angle
+
+        cv2.putText(
+            frame,
+            f"Angle: {current_angle:.2f} deg",
+            (30, 40),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 255),
+            2
+        )
+
+
+
+        # Display vertical angle
+
+        cv2.putText(
+            frame,
+            f"Vertical: {current_vertical_angle:.2f} deg",
+            (30, 160),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (255, 0, 0),
+            2
+        )
+
+
+
+        cv2.imshow(
+            "Tennis Player Detection",
+            frame
+        )
+
+
+        if cv2.waitKey(1) == ord("q"):
+            break
+
+
+
+    capture.stop()
+
+    cv2.destroyAllWindows()
+
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    main(args)
