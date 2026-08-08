@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Large user-provided media
+videos/*.mp4
+videos/*.mov
+videos/*.avi
+
+# Editors / OS
+*.swp
+*.swo
+.idea/
+.vscode/
