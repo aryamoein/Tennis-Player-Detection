@@ -47,7 +47,15 @@ class Config:
     # ------------------------------------------------------------
     # Camera geometry
     # ------------------------------------------------------------
-    HORIZONTAL_FOV = 90
+    # Samsung Galaxy S24 Ultra main camera (rear wide, 4:3):
+    #   68.3 deg horizontal FOV -> ~54.0 deg vertical FOV at 4:3.
+    HORIZONTAL_FOV = 68.3
+
+    # ------------------------------------------------------------
+    # Player
+    # ------------------------------------------------------------
+    # Real height of the tracked player in meters (175 cm).
+    PLAYER_HEIGHT = 1.75
 
     @classmethod
     def project_directory(cls):
