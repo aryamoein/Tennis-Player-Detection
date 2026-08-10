@@ -4,24 +4,19 @@ import cv2
 
 from distance_formula import (
     distance_from_ratio,
-    distance_from_width_ratio,
     height_ratio
 )
 
 
 class DistanceEstimator:
     """
-    Estimates the player-camera distance from several
-    independent measurements and combines them.
+    Estimates the player-camera distance.
 
     Approaches:
-      1. Full body height   - the whole detection box height.
-      2. Upper body (head)  - the head detected inside the
-                              top of the detection box.
-      3. Shoulder width     - the detection box width.
-
-    Each approach returns a distance; the estimator compares
-    them and combines the valid ones into a single number.
+      1. Full body height  - the whole detection box height
+                             (preferred; position-invariant).
+      2. Upper body (head) - the head detected inside the
+                             top of the detection box (fallback).
     """
 
     # ------------------------------------------------------------
@@ -30,13 +25,6 @@ class DistanceEstimator:
 
     # Average head-to-body ratio (~7.5 heads tall).
     HEAD_RATIO = 1.0 / 7.5
-
-    # Average shoulder width ratio (~0.25 of body height).
-    SHOULDER_RATIO = 0.25
-
-    # The detection box is wider than the actual shoulders,
-    # because it also covers the arms. Scale it down.
-    BOX_TO_SHOULDER_RATIO = 0.8
 
 
     def __init__(self, horizontal_fov, player_height=1.75, face_model=None):
@@ -320,51 +308,6 @@ class DistanceEstimator:
         return distance_from_ratio(
             real_head,
             vertical_fov,
-            ratio
-        )
-
-
-    # ------------------------------------------------------------
-    # Approach 3: shoulder width
-    # ------------------------------------------------------------
-
-    def estimate_from_width(
-        self,
-        detection,
-        image_height,
-        image_width
-    ):
-        """
-        Distance from the detection box width, scaled to the
-        average shoulder width.
-
-        This works even when the box is truncated vertically,
-        because the width is still fully visible.
-        """
-
-        box_width = (
-            detection["x2"] - detection["x1"]
-        )
-
-        if box_width <= 0:
-
-            return None
-
-        shoulder_px = (
-            box_width * self.BOX_TO_SHOULDER_RATIO
-        )
-
-        ratio = (
-            shoulder_px / image_width
-        )
-
-        real_shoulders = (
-            self.player_height * self.SHOULDER_RATIO
-        )
-
-        return distance_from_width_ratio(
-            real_shoulders,
-            self.horizontal_fov,
             ratio
         )
 
