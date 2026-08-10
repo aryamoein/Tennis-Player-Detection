@@ -8,6 +8,8 @@ from detector import YOLODetector
 from tflite_detector import TFLiteDetector
 from geometry import CameraGeometry
 from vertical_angle import VerticalAngleCalculator
+from player_distance import PlayerDistance
+from distance_estimator import DistanceEstimator
 
 
 def parse_args():
@@ -183,6 +185,21 @@ def main(args):
         )
     )
 
+    player_distance = PlayerDistance(
+        horizontal_fov=Config.HORIZONTAL_FOV,
+        player_height=Config.PLAYER_HEIGHT
+    )
+
+    distance_estimator = DistanceEstimator(
+        horizontal_fov=Config.HORIZONTAL_FOV,
+        player_height=Config.PLAYER_HEIGHT,
+        face_model=(
+            project_directory
+            / "models"
+            / "yunet_face_detection.onnx"
+        )
+    )
+
     capture.start()
 
     last_person = None
@@ -317,14 +334,52 @@ def main(args):
 
 
 
+        # Calculate distance between player and camera
+
+        distance = (
+            player_distance.calculate_distance(
+                last_person,
+                frame.shape[0],
+                frame.shape[1]
+            )
+        )
+
+        combined_distance, estimates = (
+            distance_estimator.estimate(
+                frame,
+                last_person,
+                frame.shape[0],
+                frame.shape[1]
+            )
+        )
+
+
+
         # -------------------------------
         # PRINT REAL TIME ANGLE
         # -------------------------------
 
-        print(
-            f"Current rotation: {current_angle:.2f} degrees | "
-            f"Vertical angle: {current_vertical_angle:.2f} degrees"
-        )
+        if combined_distance is None:
+
+            print(
+                f"Current rotation: {current_angle:.2f} degrees | "
+                f"Vertical angle: {current_vertical_angle:.2f} degrees | "
+                f"Distance: N/A (player out of frame)"
+            )
+
+        else:
+
+            estimates_text = " | ".join(
+                f"{name}: {value:.2f} m"
+                for name, value in estimates.items()
+            )
+
+            print(
+                f"Current rotation: {current_angle:.2f} degrees | "
+                f"Vertical angle: {current_vertical_angle:.2f} degrees | "
+                f"Distance: {combined_distance:.2f} m "
+                f"({estimates_text})"
+            )
 
 
 
