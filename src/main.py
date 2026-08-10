@@ -1,5 +1,7 @@
 import argparse
 
+import time
+
 import cv2
 
 from config import Config
@@ -201,6 +203,12 @@ def main(args):
 
     frame_index = 0
 
+    fps = 0.0
+
+    fps_start_time = time.time()
+
+    fps_frame_count = 0
+
     inference_every = (
         (args.skip if args.skip is not None
          else Config.FRAME_SKIP) + 1
@@ -240,6 +248,18 @@ def main(args):
             last_person = person
 
         frame_index += 1
+
+        fps_frame_count += 1
+
+        now = time.time()
+
+        if now - fps_start_time >= 1.0:
+
+            fps = fps_frame_count / (now - fps_start_time)
+
+            fps_frame_count = 0
+
+            fps_start_time = now
 
 
 
@@ -333,14 +353,16 @@ def main(args):
 
             print(
                 f"Current rotation: {current_angle:.2f} degrees | "
-                f"Distance: N/A (player out of frame)"
+                f"Distance: N/A (player out of frame) | "
+                f"FPS: {fps:.1f}"
             )
 
         else:
 
             print(
                 f"Current rotation: {current_angle:.2f} degrees | "
-                f"Distance: {combined_distance:.2f} m"
+                f"Distance: {combined_distance:.2f} m | "
+                f"FPS: {fps:.1f}"
             )
 
 
