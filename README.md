@@ -100,8 +100,9 @@ Useful overrides:
 | `--model NAME` | model file inside `models/` |
 | `--threads N` | inference threads (Pi Zero 2 W: 4) |
 | `--skip N` | skip N frames between inferences (holds last position) |
+| `--no-gui` | headless: no window/overlays (for a Pi without a display) |
 
-Press `q` to quit. 🚪
+Press `q` to quit. 🚪 (In `--no-gui` mode use `Ctrl+C`.)
 
 Example terminal output:
 

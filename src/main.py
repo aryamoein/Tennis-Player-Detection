@@ -48,6 +48,12 @@ def parse_args():
         help="Skip N frames between inferences (overrides config)."
     )
 
+    parser.add_argument(
+        "--no-gui",
+        action="store_true",
+        help="Run headless: no window, no overlays (for a Pi without a display)."
+    )
+
     return parser.parse_args()
 
 
@@ -189,6 +195,8 @@ def main(args):
 
     capture.start()
 
+    show_gui = not args.no_gui
+
     last_person = None
 
     frame_index = 0
@@ -212,7 +220,7 @@ def main(args):
                 break
 
             # Camera/file not ready yet.
-            if cv2.waitKey(1) == ord("q"):
+            if show_gui and cv2.waitKey(1) == ord("q"):
                 break
 
             continue
@@ -237,13 +245,15 @@ def main(args):
 
         if last_person is None:
 
-            cv2.imshow(
-                "Tennis Player Detection",
-                frame
-            )
+            if show_gui:
 
-            if cv2.waitKey(1) == ord("q"):
-                break
+                cv2.imshow(
+                    "Tennis Player Detection",
+                    frame
+                )
+
+                if cv2.waitKey(1) == ord("q"):
+                    break
 
             continue
 
@@ -258,13 +268,15 @@ def main(args):
         y2 = last_person["y2"]
 
 
-        cv2.rectangle(
-            frame,
-            (x1, y1),
-            (x2, y2),
-            (0, 255, 0),
-            2
-        )
+        if show_gui:
+
+            cv2.rectangle(
+                frame,
+                (x1, y1),
+                (x2, y2),
+                (0, 255, 0),
+                2
+            )
 
 
 
@@ -335,55 +347,63 @@ def main(args):
 
         # Draw player center
 
-        cv2.circle(
-            frame,
-            (player_x, player_y),
-            5,
-            (0, 0, 255),
-            -1
-        )
+        if show_gui:
+
+            cv2.circle(
+                frame,
+                (player_x, player_y),
+                5,
+                (0, 0, 255),
+                -1
+            )
 
 
         # Draw image center
 
-        cv2.circle(
-            frame,
-            (image_x, image_y),
-            5,
-            (255, 0, 0),
-            -1
-        )
+        if show_gui:
+
+            cv2.circle(
+                frame,
+                (image_x, image_y),
+                5,
+                (255, 0, 0),
+                -1
+            )
 
 
 
         # Display current angle
 
-        cv2.putText(
-            frame,
-            f"Angle: {current_angle:.2f} deg",
-            (30, 40),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (0, 255, 255),
-            2
-        )
+        if show_gui:
+
+            cv2.putText(
+                frame,
+                f"Angle: {current_angle:.2f} deg",
+                (30, 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                (0, 255, 255),
+                2
+            )
 
 
 
-        cv2.imshow(
-            "Tennis Player Detection",
-            frame
-        )
+        if show_gui:
 
+            cv2.imshow(
+                "Tennis Player Detection",
+                frame
+            )
 
-        if cv2.waitKey(1) == ord("q"):
-            break
+            if cv2.waitKey(1) == ord("q"):
+                break
 
 
 
     capture.stop()
 
-    cv2.destroyAllWindows()
+    if show_gui:
+        cv2.destroyAllWindows()
 
 
 
