@@ -381,7 +381,14 @@ class DistanceEstimator:
         image_width
     ):
         """
-        Run every available approach, then combine the results.
+        Estimate the player-camera distance.
+
+        The full-body-height measurement is used whenever the
+        player is fully visible: it is the only approach that is
+        mathematically invariant to the player's horizontal
+        position (pinhole projection: image height depends on
+        depth, not lateral offset). The head measurement is a
+        fallback when the full body is out of frame.
 
         Returns:
             (combined_distance, estimates) where estimates is a
@@ -401,6 +408,8 @@ class DistanceEstimator:
 
             estimates["full_height"] = full
 
+            return full, estimates
+
         head = self.estimate_from_head(
             frame,
             detection,
@@ -412,41 +421,6 @@ class DistanceEstimator:
 
             estimates["head"] = head
 
-        width = self.estimate_from_width(
-            detection,
-            image_height,
-            image_width
-        )
+            return head, estimates
 
-        if width is not None:
-
-            estimates["shoulder_width"] = width
-
-        if not estimates:
-
-            return None, estimates
-
-        # Combine: median when possible (robust to one bad
-        # estimate), otherwise the average of what we have.
-
-        values = list(estimates.values())
-
-        values.sort()
-
-        middle = len(values) // 2
-
-        if len(values) % 2 == 1:
-
-            combined = values[middle]
-
-        elif len(values) == 2:
-
-            combined = (values[0] + values[1]) / 2.0
-
-        else:
-
-            combined = (
-                (values[middle - 1] + values[middle]) / 2.0
-            )
-
-        return combined, estimates
+        return None, estimates
