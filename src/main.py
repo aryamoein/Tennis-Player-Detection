@@ -7,8 +7,6 @@ from capture import ThreadedCapture
 from detector import YOLODetector
 from tflite_detector import TFLiteDetector
 from geometry import CameraGeometry
-from vertical_angle import VerticalAngleCalculator
-from player_distance import PlayerDistance
 from distance_estimator import DistanceEstimator
 
 
@@ -179,17 +177,6 @@ def main(args):
         horizontal_fov=Config.HORIZONTAL_FOV
     )
 
-    vertical_angle_calculator = (
-        VerticalAngleCalculator(
-            horizontal_fov=Config.HORIZONTAL_FOV
-        )
-    )
-
-    player_distance = PlayerDistance(
-        horizontal_fov=Config.HORIZONTAL_FOV,
-        player_height=Config.PLAYER_HEIGHT
-    )
-
     distance_estimator = DistanceEstimator(
         horizontal_fov=Config.HORIZONTAL_FOV,
         player_height=Config.PLAYER_HEIGHT,
@@ -313,36 +300,7 @@ def main(args):
 
 
 
-        # Head position (top of the detection box)
-
-        head_x = int((x1 + x2) / 2)
-
-        head_y = y1
-
-
-
-        # Calculate vertical angle
-
-        current_vertical_angle = (
-            vertical_angle_calculator.calculate_vertical_angle(
-                head_y,
-                image_y,
-                frame.shape[0],
-                frame.shape[1]
-            )
-        )
-
-
-
         # Calculate distance between player and camera
-
-        distance = (
-            player_distance.calculate_distance(
-                last_person,
-                frame.shape[0],
-                frame.shape[1]
-            )
-        )
 
         combined_distance, estimates = (
             distance_estimator.estimate(
@@ -363,22 +321,14 @@ def main(args):
 
             print(
                 f"Current rotation: {current_angle:.2f} degrees | "
-                f"Vertical angle: {current_vertical_angle:.2f} degrees | "
                 f"Distance: N/A (player out of frame)"
             )
 
         else:
 
-            estimates_text = " | ".join(
-                f"{name}: {value:.2f} m"
-                for name, value in estimates.items()
-            )
-
             print(
                 f"Current rotation: {current_angle:.2f} degrees | "
-                f"Vertical angle: {current_vertical_angle:.2f} degrees | "
-                f"Distance: {combined_distance:.2f} m "
-                f"({estimates_text})"
+                f"Distance: {combined_distance:.2f} m"
             )
 
 
@@ -406,30 +356,6 @@ def main(args):
 
 
 
-        # Draw head point
-
-        cv2.circle(
-            frame,
-            (head_x, head_y),
-            5,
-            (0, 255, 0),
-            -1
-        )
-
-
-
-        # Draw line from image center to head
-
-        cv2.line(
-            frame,
-            (image_x, image_y),
-            (head_x, head_y),
-            (255, 0, 0),
-            2
-        )
-
-
-
         # Display current angle
 
         cv2.putText(
@@ -439,20 +365,6 @@ def main(args):
             cv2.FONT_HERSHEY_SIMPLEX,
             1,
             (0, 255, 255),
-            2
-        )
-
-
-
-        # Display vertical angle
-
-        cv2.putText(
-            frame,
-            f"Vertical: {current_vertical_angle:.2f} deg",
-            (30, 160),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (255, 0, 0),
             2
         )
 
