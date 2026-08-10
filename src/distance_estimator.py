@@ -1,5 +1,7 @@
 import math
 
+from pathlib import Path
+
 import cv2
 
 from distance_formula import (
@@ -64,8 +66,6 @@ class DistanceEstimator:
 
             # Fall back to the bundled model next to the project.
 
-            from pathlib import Path
-
             default = (
                 Path(__file__).resolve().parent.parent
                 / "models"
@@ -74,7 +74,7 @@ class DistanceEstimator:
 
             self._face_model = str(default)
 
-        if not cv2.os.path.exists(self._face_model):
+        if not Path(self._face_model).exists():
 
             return None
 
