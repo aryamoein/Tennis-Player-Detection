@@ -29,10 +29,14 @@ class Config:
     # Supported extensions:
     #   .tflite -> TFLiteDetector (fast, recommended on the Pi)
     #   .onnx   -> YOLODetector   (fallback)
-    MODEL_FILE = Path("models") / "ssd_mobilenet_v2_coco_int8_300.tflite"
+    #
+    # Default is the ONNX yolov8n exported at 320x320 so the
+    # program runs without tflite-runtime installed.
+    MODEL_FILE = Path("models") / "yolov8n_320.onnx"
 
     # Inference resolution. 320 is a good balance for the
     # Pi Zero 2 W. Use 224 for even more speed.
+    # Only the ONNX backend; TFLite models fix their own size.
     INFERENCE_SIZE = 320
 
     # Number of inference threads (Pi Zero 2 W has 4 cores).

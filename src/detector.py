@@ -7,12 +7,23 @@ import onnxruntime as ort
 
 class YOLODetector:
 
-    def __init__(self, model_path):
+    def __init__(self, model_path, inference_size=640):
         """
         Load the YOLO ONNX model.
+
+        Args:
+            model_path:
+                Path to the ONNX model file.
+
+            inference_size:
+                Square input size the model was exported at
+                (e.g. 640 or 320). Used to resize the frame
+                and map detections back to the original size.
         """
 
         self.model_path = Path(model_path)
+
+        self.inference_size = inference_size
 
         if not self.model_path.exists():
             raise FileNotFoundError(
@@ -59,7 +70,7 @@ class YOLODetector:
         # Resize frame to YOLO input size
         resized_frame = cv2.resize(
             frame,
-            (640, 640)
+            (self.inference_size, self.inference_size)
         )
 
 
@@ -206,8 +217,8 @@ class YOLODetector:
             original_height, original_width = frame.shape[:2]
 
 
-            scale_x = original_width / 640
-            scale_y = original_height / 640
+            scale_x = original_width / self.inference_size
+            scale_y = original_height / self.inference_size
 
 
 

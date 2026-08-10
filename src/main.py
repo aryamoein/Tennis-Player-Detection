@@ -115,7 +115,10 @@ def create_detector(project_directory, model_file=None, threads=None):
 
         print(f"Using ONNX engine: {path.name}")
 
-        return YOLODetector(path)
+        return YOLODetector(
+            path,
+            inference_size=Config.INFERENCE_SIZE
+        )
 
 
 
@@ -133,12 +136,15 @@ def create_detector(project_directory, model_file=None, threads=None):
     onnx_path = (
         project_directory
         / "models"
-        / "yolov8n.onnx"
+        / "yolov8n_320.onnx"
     )
 
     print(f"Using ONNX engine: {onnx_path.name}")
 
-    return YOLODetector(onnx_path)
+    return YOLODetector(
+        onnx_path,
+        inference_size=Config.INFERENCE_SIZE
+    )
 
 
 def get_capture(project_directory, camera_index, file_path):

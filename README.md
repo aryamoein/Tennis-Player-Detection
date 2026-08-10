@@ -24,7 +24,7 @@ src/
 tools/
   export_models.py     # run on PC/Mac: build int8 .tflite models
   benchmark.py         # run on the Pi: pick the fastest model
-models/                # yolov8n.onnx, yolov8n.pt, exported .tflite models, YuNet
+models/                # yolov8n_320.onnx (default), yolov8n.onnx, .tflite, YuNet
 videos/                # test.mp4 (dev testing)
 ```
 
@@ -112,9 +112,10 @@ Current rotation: -20.13 degrees | Distance: 15.98 m
 
 ## 🚀 Expected performance on the Pi Zero 2 W
 
+- **yolov8n_320.onnx (FP32 @ 320)** — default, no tflite-runtime needed; roughly 3-6 FPS.
 - **SSD-MobileNet-V2 int8 @ 300** (TFLite/XNNPACK): roughly 3-6 FPS.
 - **EfficientDet-Lite0 int8 @ 320** (TFLite/XNNPACK): roughly 2-4 FPS.
-- **yolov8n.onnx (FP32 @ 640)** as a fallback: roughly 1-2 FPS.
+- **yolov8n.onnx (FP32 @ 640)**: roughly 1-2 FPS.
 
 If 5+ FPS is required, prefer the light TFLite model. Because capture runs in a separate thread, the angle output stays smooth even when inference is the bottleneck. 🧵
 
