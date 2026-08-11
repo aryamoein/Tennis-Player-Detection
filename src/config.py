@@ -70,7 +70,7 @@ class Config:
     # Player
     # ------------------------------------------------------------
     # Real height of the tracked player in meters (175 cm).
-    PLAYER_HEIGHT = 1.75
+    PLAYER_HEIGHT = 1.72
 
     # Average head-to-body ratio (~7.5 heads tall).
     # Used by the head-height distance fallback.
