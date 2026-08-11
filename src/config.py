@@ -55,11 +55,22 @@ class Config:
     #   68.3 deg horizontal FOV -> ~54.0 deg vertical FOV at 4:3.
     HORIZONTAL_FOV = 72
 
+    # FOV calibration (--calib): the assumed distance in meters
+    # between the camera and the person standing in frame.
+    CALIBRATION_DISTANCE = 2.0
+
+    # FOV calibration: how many detected frames to average.
+    CALIBRATION_FRAMES = 60
+
     # ------------------------------------------------------------
     # Player
     # ------------------------------------------------------------
     # Real height of the tracked player in meters (175 cm).
     PLAYER_HEIGHT = 1.75
+
+    # Average head-to-body ratio (~7.5 heads tall).
+    # Used by the head-height distance fallback.
+    HEAD_RATIO = 1.0 / 7.5
 
     @classmethod
     def project_directory(cls):

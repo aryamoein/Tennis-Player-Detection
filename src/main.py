@@ -12,6 +12,7 @@ from detector import YOLODetector
 from tflite_detector import TFLiteDetector
 from geometry import CameraGeometry
 from distance_estimator import DistanceEstimator
+from calibration import run_calibration
 
 
 def parse_args():
@@ -56,6 +57,13 @@ def parse_args():
         "--no-gui",
         action="store_true",
         help="Run headless: no window, no overlays (for a Pi without a display)."
+    )
+
+    parser.add_argument(
+        "--calib",
+        action="store_true",
+        help="Calibrate HORIZONTAL_FOV: a person of Config.PLAYER_HEIGHT "
+             "stands at Config.CALIBRATION_DISTANCE meters from the camera."
     )
 
     return parser.parse_args()
@@ -205,6 +213,12 @@ def main(args):
         camera_index=args.camera,
         file_path=args.file
     )
+
+    if args.calib:
+
+        run_calibration(detector, capture)
+
+        return
 
     geometry = CameraGeometry(
         horizontal_fov=Config.HORIZONTAL_FOV
