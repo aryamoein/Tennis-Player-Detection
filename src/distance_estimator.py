@@ -46,6 +46,10 @@ class DistanceEstimator:
 
         self._face_model = face_model
 
+        self._head_cache_box = None
+
+        self._head_cache_result = None
+
 
     def _load_face_detector(self):
         """
@@ -186,9 +190,29 @@ class DistanceEstimator:
         Find the head inside the top half of the detection box
         using a YuNet face detector.
 
+        Runs YuNet only on a small crop of the head region
+        (instead of the whole frame) and caches the result for
+        the same box, so frames that reuse a stale detection do
+        not pay the face-detection cost again.
+
         Returns:
             Head height in pixels, or None when no face is found.
         """
+
+        box = (
+            detection["x1"],
+            detection["y1"],
+            detection["x2"],
+            detection["y2"]
+        )
+
+        if box == self._head_cache_box:
+
+            return self._head_cache_result
+
+        self._head_cache_box = box
+
+        self._head_cache_result = None
 
         detector = self._load_face_detector()
 
@@ -212,13 +236,34 @@ class DistanceEstimator:
 
             return None
 
-        height, width = frame.shape[:2]
+        frame_height, frame_width = frame.shape[:2]
 
-        # FaceDetectorYN input size must match the frame.
+        # Small padding around the head region so the face is
+        # not cut. Clamps stay inside the frame.
 
-        detector.setInputSize((width, height))
+        pad = 8
 
-        status, faces = detector.detect(frame)
+        crop_x1 = max(x1 - pad, 0)
+
+        crop_y1 = max(y1 - pad, 0)
+
+        crop_x2 = min(x2 + pad, frame_width)
+
+        crop_y2 = min(head_bottom + pad, frame_height)
+
+        if crop_x2 <= crop_x1 or crop_y2 <= crop_y1:
+
+            return None
+
+        crop = frame[crop_y1:crop_y2, crop_x1:crop_x2]
+
+        crop_height, crop_width = crop.shape[:2]
+
+        # FaceDetectorYN input size must match the image size.
+
+        detector.setInputSize((crop_width, crop_height))
+
+        status, faces = detector.detect(crop)
 
         if status is False or faces is None:
 
@@ -234,12 +279,13 @@ class DistanceEstimator:
                 face[:4].astype(int)
             )
 
-            # Keep only faces inside the head region.
+            # Map back into full-frame coordinates and keep
+            # only faces inside the head region.
 
             if (
-                fx1 < x1 or fy1 < y1
-                or fx1 + fw > x2
-                or fy1 + fh > head_bottom
+                fx1 < x1 - crop_x1 or fy1 < y1 - crop_y1
+                or fx1 + fw > x2 - crop_x1
+                or fy1 + fh > head_bottom - crop_y1
             ):
 
                 continue
@@ -255,6 +301,8 @@ class DistanceEstimator:
         if best is None or best <= 0:
 
             return None
+
+        self._head_cache_result = int(best)
 
         return int(best)
 
