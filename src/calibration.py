@@ -14,6 +14,7 @@ depth, so the FOV is correct wherever the person stands.
 """
 
 import math
+import time
 
 import cv2
 
@@ -95,13 +96,42 @@ def run_calibration(detector, capture):
 
     frames_collected = 0
 
+    start_time = time.time()
+
+    last_status_print = 0.0
+
+    print(
+        f"Calibration: person of {Config.PLAYER_HEIGHT:.2f} m "
+        f"standing at {Config.CALIBRATION_DISTANCE:.1f} m from the camera. "
+        f"Collecting {Config.CALIBRATION_FRAMES} full-body detections."
+    )
+
     while frames_collected < Config.CALIBRATION_FRAMES:
+
+        now = time.time()
+
+        elapsed = now - start_time
+
+        if elapsed > Config.CALIBRATION_TIMEOUT:
+
+            print(
+                "Calibration timed out: no full-body detection "
+                f"appeared within {Config.CALIBRATION_TIMEOUT:.0f} s. "
+                "Make sure the person is fully in frame."
+            )
+
+            break
 
         frame = capture.read()
 
         if frame is None:
 
             if capture.is_file() and capture.finished():
+
+                print(
+                    "Video ended before enough detections "
+                    f"({frames_collected}/{Config.CALIBRATION_FRAMES})."
+                )
 
                 break
 
@@ -112,26 +142,50 @@ def run_calibration(detector, capture):
             confidence_threshold=Config.CONFIDENCE_THRESHOLD
         )
 
-        if person is None:
-
-            continue
-
         height, width = frame.shape[:2]
 
-        # Keep only full-body boxes (not cut off at the edges).
+        if person is None:
 
-        if (
-            person["y1"] <= 2
-            or person["y2"] >= height - 1 - 2
-        ):
+            if now - last_status_print >= 1.0:
+
+                print(
+                    f"[{elapsed:5.1f}s] waiting for a person "
+                    f"(0/{Config.CALIBRATION_FRAMES})"
+                )
+
+                last_status_print = now
 
             continue
 
-        heights.append(person["y2"] - person["y1"])
+        box_height = person["y2"] - person["y1"]
+
+        truncated = (
+            person["y1"] <= 2
+            or person["y2"] >= height - 1 - 2
+        )
+
+        if truncated:
+
+            print(
+                f"[{elapsed:5.1f}s] skipped: box cut off at the edge "
+                f"(body: truncated, {box_height} px)"
+            )
+
+            continue
+
+        heights.append(box_height)
 
         frame_dimensions = (height, width)
 
         frames_collected += 1
+
+        running_average = sum(heights) / len(heights)
+
+        print(
+            f"[{elapsed:5.1f}s] [{frames_collected:2d}/"
+            f"{Config.CALIBRATION_FRAMES}] body: full, "
+            f"height {box_height} px, running avg {running_average:.1f} px"
+        )
 
     capture.stop()
 

@@ -62,6 +62,10 @@ class Config:
     # FOV calibration: how many detected frames to average.
     CALIBRATION_FRAMES = 60
 
+    # FOV calibration: give up after this many seconds if no
+    # full-body detection has appeared yet.
+    CALIBRATION_TIMEOUT = 30
+
     # ------------------------------------------------------------
     # Player
     # ------------------------------------------------------------
