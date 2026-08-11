@@ -397,14 +397,24 @@ def main(args):
             print(
                 f"Current rotation: {current_angle:.2f} degrees | "
                 f"Distance: N/A (player out of frame) | "
+                f"Body: out of frame | "
                 f"FPS: {fps:.1f}"
             )
 
         else:
 
+            if "full_height" in estimates:
+
+                body_flag = "full"
+
+            else:
+
+                body_flag = "truncated"
+
             print(
                 f"Current rotation: {current_angle:.2f} degrees | "
                 f"Distance: {combined_distance:.2f} m | "
+                f"Body: {body_flag} | "
                 f"FPS: {fps:.1f}"
             )
 
