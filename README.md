@@ -32,6 +32,14 @@ videos/                # test.mp4 (dev testing)
 
 ## 💻 Running on a PC (testing, no camera required)
 
+Install the dependencies (no TFLite needed):
+
+```bash
+pip install -r requirements.txt
+```
+
+Then run:
+
 ```bash
 python3 src/main.py --file videos/test.mp4
 ```
@@ -56,8 +64,10 @@ sudo apt update
 sudo apt install -y python3-opencv python3-pip
 python3 -m venv --system-site-packages ~/tennis-venv
 source ~/tennis-venv/bin/activate
-pip install tflite-runtime
+pip install -r requirements.txt
 ```
+
+(Optional: `pip install tflite-runtime` if you want the faster TFLite backends.)
 
 ### 3. Build the models (run this on your PC/Mac, NOT on the Pi) 🛠️
 
