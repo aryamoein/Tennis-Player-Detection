@@ -21,6 +21,8 @@ src/
   distance_estimator.py # distance from full height (preferred) or head (fallback)
   distance_formula.py  # pinhole camera distance math
   main.py              # main loop + terminal output + GUI
+cpp/                   # C++17 port of every module above (see cpp/README.md)
+  include/, src/, tools/, CMakeLists.txt
 tools/
   export_models.py     # run on PC/Mac: build int8 .tflite models
   benchmark.py         # run on the Pi: pick the fastest model
