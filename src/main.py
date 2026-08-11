@@ -1,5 +1,7 @@
 import argparse
 
+import os
+import sys
 import time
 
 import cv2
@@ -147,6 +149,23 @@ def create_detector(project_directory, model_file=None, threads=None):
     )
 
 
+def has_display():
+    """
+    True when a graphical display is available for OpenCV
+    windows. On Linux, headless Pis run without DISPLAY or
+    WAYLAND_DISPLAY, so we fall back to terminal-only output.
+    """
+
+    if sys.platform.startswith("linux"):
+
+        return bool(
+            os.environ.get("DISPLAY")
+            or os.environ.get("WAYLAND_DISPLAY")
+        )
+
+    return True
+
+
 def get_capture(project_directory, camera_index, file_path):
     """
     Build the capture source.
@@ -203,7 +222,11 @@ def main(args):
 
     capture.start()
 
-    show_gui = not args.no_gui
+    show_gui = not args.no_gui and has_display()
+
+    if not show_gui:
+
+        print("No display detected; running headless (terminal output only).")
 
     last_person = None
 

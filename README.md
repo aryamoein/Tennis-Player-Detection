@@ -116,6 +116,8 @@ Useful overrides:
 
 Press `q` to quit. 🚪 (In `--no-gui` mode use `Ctrl+C`.)
 
+> 🖥️ **Headless is automatic**: on a Pi without a display (no `DISPLAY`/`WAYLAND_DISPLAY`) the program detects it and runs terminal-only — no `--no-gui` needed.
+
 Example terminal output:
 
 ```
