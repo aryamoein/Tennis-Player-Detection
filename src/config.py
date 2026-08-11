@@ -53,7 +53,7 @@ class Config:
     # ------------------------------------------------------------
     # Samsung Galaxy S24 Ultra main camera (rear wide, 4:3):
     #   68.3 deg horizontal FOV -> ~54.0 deg vertical FOV at 4:3.
-    HORIZONTAL_FOV = 68.3
+    HORIZONTAL_FOV = 72
 
     # ------------------------------------------------------------
     # Player
