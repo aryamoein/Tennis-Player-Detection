@@ -26,25 +26,29 @@ ONNX fallback) lives in `include/engine_factory.hpp` / `src/engine_factory.cpp`.
 | Library | Needed for | PC | Raspberry Pi |
 |---|---|---|---|
 | **OpenCV ≥ 4.5.4** (`core imgproc imgcodecs videoio highgui objdetect`) | capture, GUI, YuNet (`FaceDetectorYN` is in `objdetect`) | `sudo apt install libopencv-dev` | `sudo apt install libopencv-dev` |
-| **ONNX Runtime** (C++ API) | the default `yolov8n_320.onnx` model | prebuilt x64 `.tgz` | prebuilt aarch64 `.tgz` |
+| **ONNX Runtime ≥ 1.19** (C++ API) | the default `yolov8n_320.onnx` model (exported with ONNX opset 20) | prebuilt x64 `.tgz` | prebuilt aarch64 `.tgz` |
 | **TensorFlow Lite** (optional) | fast int8 models (SSD-MobileNet, EfficientDet) | build from source (optional) | build from source (recommended) |
 | **libcurl** (optional) | `export_models` only | `libcurl4-openssl-dev` | `libcurl4-openssl-dev` |
 
 > The YuNet face model runs inside OpenCV's own DNN module, so it does **not**
 > need the ONNX Runtime dependency.
 
+> The YOLO models in this repo were exported with ONNX opset 20, so ONNX
+> Runtime **1.19 or newer** is required (older versions refuse opset 20
+> models with a loader error).
+
 ### ONNX Runtime (PC, x86-64)
 
 ```bash
-wget https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-linux-x64-1.16.3.tgz
-tar xzf onnxruntime-linux-x64-1.16.3.tgz     # -> ~/onnxruntime-linux-x64-1.16.3
+wget https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-linux-x64-1.20.1.tgz
+tar xzf onnxruntime-linux-x64-1.20.1.tgz   # -> ~/onnxruntime-linux-x64-1.20.1
 ```
 
 ### ONNX Runtime (Pi Zero 2 W, ARM64)
 
 ```bash
-wget https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-linux-aarch64-1.16.3.tgz
-tar xzf onnxruntime-linux-aarch64-1.16.3.tgz  # -> ~/onnxruntime-linux-aarch64-1.16.3
+wget https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-linux-aarch64-1.20.1.tgz
+tar xzf onnxruntime-linux-aarch64-1.20.1.tgz  # -> ~/onnxruntime-linux-aarch64-1.20.1
 ```
 
 > Check for a newer release; the arm64 build is what runs on the Pi's 64-bit OS.

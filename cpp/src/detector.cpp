@@ -41,6 +41,11 @@ public:
     }
 };
 
+#else  // !TP_HAVE_ONNX
+
+/** Empty placeholder so `sizeof(YOLODetector)` stays identical across TUs. */
+class YOLODetector::Impl {};
+
 #endif  // TP_HAVE_ONNX
 
 YOLODetector::YOLODetector(const std::string& model_path,
@@ -101,11 +106,22 @@ YOLODetector::YOLODetector(const std::string& model_path,
         std::cout << "]" << std::endl;
         std::cout << "Number of outputs: " << num_outputs << std::endl;
         for (size_t i = 0; i < num_outputs; ++i) {
-            auto info = impl_->session.GetOutputTypeInfo(i).GetTensorTypeAndShapeInfo();
-            const auto shape = info.GetShape();
+            // Keep the Ort::TypeInfo alive while its (unowned) tensor shape
+            // view is in use; otherwise the view dangles and dims read as
+            // garbage. (GetTensorTypeAndShapeInfo returns an unowned view into
+            // the TypeInfo, so the temporary in
+            // `GetOutputTypeInfo(i).GetTensorTypeAndShapeInfo()` is a
+            // use-after-free.)
+            Ort::TypeInfo output_info = impl_->session.GetOutputTypeInfo(i);
+            auto shape = output_info.GetTensorTypeAndShapeInfo().GetShape();
             std::cout << "Output: " << impl_->output_names[i] << " [";
             for (size_t j = 0; j < shape.size(); ++j) {
-                std::cout << (j == 0 ? "" : ", ") << shape[j];
+                std::cout << (j == 0 ? "" : ", ");
+                if (shape[j] < 0) {
+                    std::cout << "?";  // dynamic dimension
+                } else {
+                    std::cout << shape[j];
+                }
             }
             std::cout << "]" << std::endl;
         }

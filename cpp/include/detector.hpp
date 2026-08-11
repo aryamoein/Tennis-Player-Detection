@@ -59,10 +59,12 @@ private:
     int inference_size_ = 640;
     int threads_ = 4;
 
-#ifdef TP_HAVE_ONNX
+    // Always declared so sizeof(YOLODetector) is identical for every
+    // translation unit regardless of which backend macros are defined.
+    // Keeping the ONNX Runtime state out of the public header avoids
+    // layout surprises between tp_core and tp_detectors.
     class Impl;
     std::unique_ptr<Impl> impl_;
-#endif
 };
 
 }  // namespace tp
