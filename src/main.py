@@ -127,8 +127,7 @@ def create_detector(project_directory, model_file=None, threads=None):
 
         return YOLODetector(
             path,
-            inference_size=Config.INFERENCE_SIZE,
-            threads=threads
+            inference_size=Config.INFERENCE_SIZE
         )
 
 
@@ -154,8 +153,7 @@ def create_detector(project_directory, model_file=None, threads=None):
 
     return YOLODetector(
         onnx_path,
-        inference_size=Config.INFERENCE_SIZE,
-        threads=threads
+        inference_size=Config.INFERENCE_SIZE
     )
 
 

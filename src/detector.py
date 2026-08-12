@@ -7,7 +7,7 @@ import onnxruntime as ort
 
 class YOLODetector:
 
-    def __init__(self, model_path, inference_size=640, threads=1):
+    def __init__(self, model_path, inference_size=640):
         """
         Load the YOLO ONNX model.
 
@@ -19,10 +19,6 @@ class YOLODetector:
                 Square input size the model was exported at
                 (e.g. 640 or 320). Used to resize the frame
                 and map detections back to the original size.
-
-            threads:
-                ONNX runtime CPU threads (e.g. 4 on the
-                Pi Zero 2 W). A big speedup for convolutions.
         """
 
         self.model_path = Path(model_path)
@@ -34,21 +30,9 @@ class YOLODetector:
                 f"Model file not found: {self.model_path}"
             )
 
-        # Load ONNX model with the CPU thread pool tuned for
-        # the board. The default single thread heavily wastes
-        # a quad-core Pi.
-
-        session_options = ort.SessionOptions()
-
-        session_options.intra_op_num_threads = int(threads)
-
-        session_options.graph_optimization_level = (
-            ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-        )
-
+        # Load ONNX model
         self.session = ort.InferenceSession(
             str(self.model_path),
-            sess_options=session_options,
             providers=["CPUExecutionProvider"]
         )
 
@@ -164,62 +148,104 @@ class YOLODetector:
         # (84,8400)
         #
         # to:
-        #
-        # (2100,84)
+        # (8400,84)
 
         predictions = predictions.T
+
 
 
         person_class_id = 0
 
 
-        # Person confidences for every anchor (vectorised,
-        # much faster than a Python loop).
+        best_detection = None
 
-        confidences = predictions[:, 4 + person_class_id]
-
-        best_index = int(np.argmax(confidences))
-
-        best_confidence = float(confidences[best_index])
+        best_confidence = confidence_threshold
 
 
-        if best_confidence < confidence_threshold:
 
-            return None
-
-
-        # Bounding box in YOLO format
-
-        x_center, y_center, width, height = predictions[best_index, :4]
+        for prediction in predictions:
 
 
-        # Convert center/width/height to corners, then scale
-        # from model coordinates back to the original frame.
+            # Bounding box in YOLO format
 
-        original_height, original_width = frame.shape[:2]
+            x_center = prediction[0]
+            y_center = prediction[1]
 
-        scale_x = original_width / self.inference_size
-        scale_y = original_height / self.inference_size
-
-        x1 = int((x_center - width / 2) * scale_x)
-        y1 = int((y_center - height / 2) * scale_y)
-
-        x2 = int((x_center + width / 2) * scale_x)
-        y2 = int((y_center + height / 2) * scale_y)
+            width = prediction[2]
+            height = prediction[3]
 
 
-        return {
+            # Person confidence
 
-            "class_name": "person",
+            confidence = prediction[
+                4 + person_class_id
+            ]
 
-            "confidence": best_confidence,
 
-            "x1": x1,
-            "y1": y1,
+            if confidence < best_confidence:
+                continue
 
-            "x2": x2,
-            "y2": y2
-        }
+
+
+            best_confidence = confidence
+
+
+
+            # Convert:
+            # center format
+            #
+            # x_center,y_center,w,h
+            #
+            # to:
+            #
+            # x1,y1,x2,y2
+
+
+            x1 = x_center - width / 2
+            y1 = y_center - height / 2
+
+            x2 = x_center + width / 2
+            y2 = y_center + height / 2
+
+
+
+            # -------------------------------
+            # SCALE TO ORIGINAL FRAME SIZE
+            # -------------------------------
+
+
+            original_height, original_width = frame.shape[:2]
+
+
+            scale_x = original_width / self.inference_size
+            scale_y = original_height / self.inference_size
+
+
+
+            x1 *= scale_x
+            x2 *= scale_x
+
+            y1 *= scale_y
+            y2 *= scale_y
+
+
+
+            best_detection = {
+
+                "class_name": "person",
+
+                "confidence": float(confidence),
+
+                "x1": int(x1),
+                "y1": int(y1),
+
+                "x2": int(x2),
+                "y2": int(y2)
+            }
+
+
+
+        return best_detection
 
 
 
