@@ -13,6 +13,7 @@ from tflite_detector import TFLiteDetector
 from geometry import CameraGeometry
 from distance_estimator import DistanceEstimator
 from calibration import run_calibration
+from serial_comm import SerialComm
 
 
 def parse_args():
@@ -234,6 +235,8 @@ def main(args):
         )
     )
 
+    serial_comm = SerialComm()
+
     capture.start()
 
     show_gui = not args.no_gui and has_display()
@@ -256,6 +259,10 @@ def main(args):
         (args.skip if args.skip is not None
          else Config.FRAME_SKIP) + 1
     )
+
+    last_servo_angle = None
+
+    last_angle_time = None
 
 
 
@@ -402,6 +409,8 @@ def main(args):
                 f"FPS: {fps:.1f}"
             )
 
+            serial_comm.send(0, 0, 0)
+
         else:
 
             if "full_height" in estimates:
@@ -416,12 +425,40 @@ def main(args):
                 combined_distance
             )
 
+            now = time.time()
+
+            if last_servo_angle is not None and last_angle_time is not None:
+
+                elapsed = now - last_angle_time
+
+                if elapsed > 0:
+
+                    speed = abs(angle - last_servo_angle) / elapsed
+
+                else:
+
+                    speed = 0.0
+
+            else:
+
+                speed = 0.0
+
+            last_servo_angle = angle
+
+            last_angle_time = now
+
             print(
                 f"Current rotation: {current_angle:.2f} degrees | "
                 f"Distance: {combined_distance:.2f} m | "
                 f"Angle: {angle:.2f} degrees | "
                 f"Body: {body_flag} | "
                 f"FPS: {fps:.1f}"
+            )
+
+            serial_comm.send(
+                round(current_angle, 2),
+                round(angle, 2),
+                round(speed, 2)
             )
 
 
@@ -482,6 +519,8 @@ def main(args):
 
 
     capture.stop()
+
+    serial_comm.close()
 
     if show_gui:
         cv2.destroyAllWindows()
