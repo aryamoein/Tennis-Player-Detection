@@ -1,9 +1,12 @@
 # 🎾 Tennis-Player-Detection
 
-Detects a tennis player from a camera feed, tracks the player, and reports two measurements in the terminal:
+Detects a tennis player from a camera feed, tracks the player, and reports multiple measurements in the terminal:
 
 - **Rotation** 🎯 — horizontal angle between the image center and the player center (how far the gimbal must pan).
 - **Distance** 📏 — estimated distance between the player and the camera, in meters.
+- **Angle** 📐 — a linear, proportional mapping of the distance to a servo angle (see [below](#angle-from-distance)).
+- **Body** 🧍 — whether the full body is visible (`full`) or cut off at the frame edge (`truncated`).
+- **FPS** ⚡ — frames processed per second.
 
 The pipeline is optimized for running on a **Raspberry Pi Zero 2 W** 🥧 (64-bit OS) with a USB camera.
 
@@ -113,6 +116,7 @@ Useful overrides:
 | `--threads N` | inference threads (Pi Zero 2 W: 4) |
 | `--skip N` | skip N frames between inferences (holds last position) |
 | `--no-gui` | headless: no window/overlays (for a Pi without a display) |
+| `--calib` | calibrate `HORIZONTAL_FOV` from a person at a known distance |
 
 Press `q` to quit. 🚪 (In `--no-gui` mode use `Ctrl+C`.)
 
@@ -121,7 +125,7 @@ Press `q` to quit. 🚪 (In `--no-gui` mode use `Ctrl+C`.)
 Example terminal output:
 
 ```
-Current rotation: -20.13 degrees | Distance: 15.98 m
+Current rotation: -21.07 degrees | Distance: 9.55 m | Angle: 45.00 degrees | Body: full | FPS: 459.0
 ```
 
 ## 🚀 Expected performance on the Pi Zero 2 W
@@ -136,13 +140,45 @@ If 5+ FPS is required, prefer the light TFLite model. Because capture runs in a 
 ## 📏 How the distance is estimated
 
 - The **full-body height** is used whenever the player is fully in frame — it is mathematically invariant to the player's horizontal position (pinhole projection: image height depends on depth, not lateral offset).
-- When the body is truncated (top/bottom of frame), it falls back to the **head height** found by a YuNet face detector.
+- When the body is truncated (top/bottom of frame), it falls back to the **head height** found by a YuNet face detector (run on a small crop of the head region and cached per box).
 - Both use the pinhole formula `x = L / (2 · X · tan(θ/2))` with the player's real height from config.
+
+## 📐 Angle from distance
+
+The estimated distance is mapped to a servo angle with a **linear, proportional relationship**, clamped to the configured range (never below `MIN_ANGLE`, never above `MAX_ANGLE`):
+
+```
+angle = MIN_ANGLE + ((distance - MIN_DISTANCE) / (MAX_DISTANCE - MIN_DISTANCE)) * (MAX_ANGLE - MIN_ANGLE)
+```
+
+With the defaults (`MIN_DISTANCE=1`, `MAX_DISTANCE=5`, `MIN_ANGLE=20`, `MAX_ANGLE=45`):
+
+| Distance |  Angle |
+| -------: | -----: |
+|   `< 1m` |   20°  |
+|     `1m` |   20°  |
+|     `2m` | 26.25° |
+|     `3m` | 32.5°  |
+|     `4m` | 38.75° |
+|     `5m` |   45°  |
+|   `> 5m` |   45°  |
+
+## 🎯 FOV calibration (`--calib`)
+
+Assuming a person with `PLAYER_HEIGHT` meters stands at `CALIBRATION_DISTANCE` meters from the camera, the program measures the averaged full-body height and derives the camera's `HORIZONTAL_FOV`, then **auto-updates it in `src/config.py`**:
+
+```bash
+python3 src/main.py --calib                  # live camera
+python3 src/main.py --calib --file videos/x.mp4
+```
+
+Progress is printed per detection (body `full`/`truncated`, running average), and it gives up after `CALIBRATION_TIMEOUT` seconds if nobody appears.
 
 ## 🎛️ Tuning knobs (`src/config.py`)
 
 - `CAMERA_INDEX`, `CAPTURE_WIDTH/HEIGHT/FPS`, `USE_MJPEG`
 - `MODEL_FILE`, `INFERENCE_SIZE` (only used by the ONNX backend; TFLite models fix their own size), `THREADS`
 - `CONFIDENCE_THRESHOLD`, `FRAME_SKIP`
-- `HORIZONTAL_FOV` (default 68.3° — Samsung Galaxy S24 Ultra main camera)
-- `PLAYER_HEIGHT` (default 1.75 m)
+- `HORIZONTAL_FOV`, `CALIBRATION_DISTANCE/FRAMES/TIMEOUT`
+- `PLAYER_HEIGHT`, `HEAD_RATIO` (head-height distance fallback)
+- `MIN_DISTANCE`, `MAX_DISTANCE`, `MIN_ANGLE`, `MAX_ANGLE` (distance→angle mapping)
