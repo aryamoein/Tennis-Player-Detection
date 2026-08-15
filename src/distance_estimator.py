@@ -361,3 +361,39 @@ class DistanceEstimator:
             return head, estimates
 
         return None, estimates
+
+    def distance_to_angle(self, distance):
+        """
+        Linear, proportional mapping from distance to a servo
+        angle, clamped to the configured range.
+
+        Args:
+            distance:
+                Estimated player-camera distance in meters, or
+                None when no distance is available.
+
+        Returns:
+            Angle in degrees within [MIN_ANGLE, MAX_ANGLE], or
+            None when distance is unknown.
+        """
+
+        if distance is None:
+
+            return None
+
+        if distance <= Config.MIN_DISTANCE:
+
+            return Config.MIN_ANGLE
+
+        if distance >= Config.MAX_DISTANCE:
+
+            return Config.MAX_ANGLE
+
+        return (
+            Config.MIN_ANGLE
+            + (
+                (distance - Config.MIN_DISTANCE)
+                / (Config.MAX_DISTANCE - Config.MIN_DISTANCE)
+            )
+            * (Config.MAX_ANGLE - Config.MIN_ANGLE)
+        )

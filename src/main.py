@@ -397,6 +397,7 @@ def main(args):
             print(
                 f"Current rotation: {current_angle:.2f} degrees | "
                 f"Distance: N/A (player out of frame) | "
+                f"Angle: N/A | "
                 f"Body: out of frame | "
                 f"FPS: {fps:.1f}"
             )
@@ -411,9 +412,14 @@ def main(args):
 
                 body_flag = "truncated"
 
+            angle = distance_estimator.distance_to_angle(
+                combined_distance
+            )
+
             print(
                 f"Current rotation: {current_angle:.2f} degrees | "
                 f"Distance: {combined_distance:.2f} m | "
+                f"Angle: {angle:.2f} degrees | "
                 f"Body: {body_flag} | "
                 f"FPS: {fps:.1f}"
             )

@@ -76,6 +76,18 @@ class Config:
     # Used by the head-height distance fallback.
     HEAD_RATIO = 1.0 / 7.5
 
+    # ------------------------------------------------------------
+    # Distance -> angle (linear, proportional)
+    # ------------------------------------------------------------
+    # Maps the estimated player distance to a servo angle.
+    # Outside the range, the angle is clamped to the boundary,
+    # so it never goes below MIN_ANGLE or above MAX_ANGLE.
+    MIN_DISTANCE = 1.0
+    MAX_DISTANCE = 5.0
+
+    MIN_ANGLE = 20.0
+    MAX_ANGLE = 45.0
+
     @classmethod
     def project_directory(cls):
         return Path(__file__).resolve().parent.parent
