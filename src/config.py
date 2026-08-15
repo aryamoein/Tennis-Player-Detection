@@ -88,6 +88,10 @@ class Config:
     MIN_ANGLE = 20.0
     MAX_ANGLE = 45.0
 
+    # Servo rotation speed (degrees per second), sent as a constant
+    # to the MCU on every frame.
+    SPEED = 30.0
+
     @classmethod
     def project_directory(cls):
         return Path(__file__).resolve().parent.parent

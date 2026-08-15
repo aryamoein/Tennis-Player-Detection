@@ -260,10 +260,6 @@ def main(args):
          else Config.FRAME_SKIP) + 1
     )
 
-    last_servo_angle = None
-
-    last_angle_time = None
-
 
 
     while True:
@@ -425,28 +421,6 @@ def main(args):
                 combined_distance
             )
 
-            now = time.time()
-
-            if last_servo_angle is not None and last_angle_time is not None:
-
-                elapsed = now - last_angle_time
-
-                if elapsed > 0:
-
-                    speed = abs(angle - last_servo_angle) / elapsed
-
-                else:
-
-                    speed = 0.0
-
-            else:
-
-                speed = 0.0
-
-            last_servo_angle = angle
-
-            last_angle_time = now
-
             print(
                 f"Current rotation: {current_angle:.2f} degrees | "
                 f"Distance: {combined_distance:.2f} m | "
@@ -458,7 +432,7 @@ def main(args):
             serial_comm.send(
                 round(current_angle, 2),
                 round(angle, 2),
-                round(speed, 2)
+                Config.SPEED
             )
 
 
