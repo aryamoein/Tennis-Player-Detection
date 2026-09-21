@@ -53,13 +53,44 @@ class Config:
     # ------------------------------------------------------------
     # Samsung Galaxy S24 Ultra main camera (rear wide, 4:3):
     #   68.3 deg horizontal FOV -> ~54.0 deg vertical FOV at 4:3.
-    HORIZONTAL_FOV = 68.3
+    HORIZONTAL_FOV = 72
+
+    # FOV calibration (--calib): the assumed distance in meters
+    # between the camera and the person standing in frame.
+    CALIBRATION_DISTANCE = 2.0
+
+    # FOV calibration: how many detected frames to average.
+    CALIBRATION_FRAMES = 60
+
+    # FOV calibration: give up after this many seconds if no
+    # full-body detection has appeared yet.
+    CALIBRATION_TIMEOUT = 30
 
     # ------------------------------------------------------------
     # Player
     # ------------------------------------------------------------
     # Real height of the tracked player in meters (175 cm).
-    PLAYER_HEIGHT = 1.75
+    PLAYER_HEIGHT = 1.72
+
+    # Average head-to-body ratio (~7.5 heads tall).
+    # Used by the head-height distance fallback.
+    HEAD_RATIO = 1.0 / 7.5
+
+    # ------------------------------------------------------------
+    # Distance -> angle (linear, proportional)
+    # ------------------------------------------------------------
+    # Maps the estimated player distance to a servo angle.
+    # Outside the range, the angle is clamped to the boundary,
+    # so it never goes below MIN_ANGLE or above MAX_ANGLE.
+    MIN_DISTANCE = 1.0
+    MAX_DISTANCE = 5.0
+
+    MIN_ANGLE = 20.0
+    MAX_ANGLE = 45.0
+
+    # Servo rotation speed (degrees per second), sent as a constant
+    # to the MCU on every frame.
+    SPEED = 30.0
 
     @classmethod
     def project_directory(cls):

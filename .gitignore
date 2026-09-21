@@ -14,9 +14,16 @@ env/
 videos/*.mp4
 videos/*.mov
 videos/*.avi
+video/*.mp4
+video/*.mov
+video/*.avi
 
 # Editors / OS
 *.swp
 *.swo
 .idea/
 .vscode/
+
+# C++ build
+cpp/build/
+build/

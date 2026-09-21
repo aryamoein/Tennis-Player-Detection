@@ -1,5 +1,7 @@
 import argparse
 
+import os
+import sys
 import time
 
 import cv2
@@ -10,6 +12,8 @@ from detector import YOLODetector
 from tflite_detector import TFLiteDetector
 from geometry import CameraGeometry
 from distance_estimator import DistanceEstimator
+from calibration import run_calibration
+from serial_comm import SerialComm
 
 
 def parse_args():
@@ -54,6 +58,13 @@ def parse_args():
         "--no-gui",
         action="store_true",
         help="Run headless: no window, no overlays (for a Pi without a display)."
+    )
+
+    parser.add_argument(
+        "--calib",
+        action="store_true",
+        help="Calibrate HORIZONTAL_FOV: a person of Config.PLAYER_HEIGHT "
+             "stands at Config.CALIBRATION_DISTANCE meters from the camera."
     )
 
     return parser.parse_args()
@@ -147,6 +158,23 @@ def create_detector(project_directory, model_file=None, threads=None):
     )
 
 
+def has_display():
+    """
+    True when a graphical display is available for OpenCV
+    windows. On Linux, headless Pis run without DISPLAY or
+    WAYLAND_DISPLAY, so we fall back to terminal-only output.
+    """
+
+    if sys.platform.startswith("linux"):
+
+        return bool(
+            os.environ.get("DISPLAY")
+            or os.environ.get("WAYLAND_DISPLAY")
+        )
+
+    return True
+
+
 def get_capture(project_directory, camera_index, file_path):
     """
     Build the capture source.
@@ -187,6 +215,12 @@ def main(args):
         file_path=args.file
     )
 
+    if args.calib:
+
+        run_calibration(detector, capture)
+
+        return
+
     geometry = CameraGeometry(
         horizontal_fov=Config.HORIZONTAL_FOV
     )
@@ -201,9 +235,15 @@ def main(args):
         )
     )
 
+    serial_comm = SerialComm()
+
     capture.start()
 
-    show_gui = not args.no_gui
+    show_gui = not args.no_gui and has_display()
+
+    if not show_gui:
+
+        print("No display detected; running headless (terminal output only).")
 
     last_person = None
 
@@ -373,15 +413,39 @@ def main(args):
             print(
                 f"Current rotation: {current_angle:.2f} degrees | "
                 f"Distance: N/A (player out of frame) | "
+                f"Angle: N/A | "
+                f"Body: out of frame | "
                 f"FPS: {fps:.1f}"
             )
 
+            serial_comm.send(0, 0, 0)
+
         else:
+
+            if "full_height" in estimates:
+
+                body_flag = "full"
+
+            else:
+
+                body_flag = "truncated"
+
+            angle = distance_estimator.distance_to_angle(
+                combined_distance
+            )
 
             print(
                 f"Current rotation: {current_angle:.2f} degrees | "
                 f"Distance: {combined_distance:.2f} m | "
+                f"Angle: {angle:.2f} degrees | "
+                f"Body: {body_flag} | "
                 f"FPS: {fps:.1f}"
+            )
+
+            serial_comm.send(
+                round(current_angle, 2),
+                round(angle, 2),
+                Config.SPEED
             )
 
 
@@ -442,6 +506,8 @@ def main(args):
 
 
     capture.stop()
+
+    serial_comm.close()
 
     if show_gui:
         cv2.destroyAllWindows()

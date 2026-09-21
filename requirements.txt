@@ -1,0 +1,8 @@
+# Runtime dependencies for Tennis-Player-Detection.
+# TFLite is intentionally NOT listed here; it is optional
+# (install tflite-runtime only if you want the TFLite backends).
+
+numpy
+opencv-python
+onnxruntime
+pyserial

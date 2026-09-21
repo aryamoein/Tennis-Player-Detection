@@ -4,6 +4,7 @@ from pathlib import Path
 
 import cv2
 
+from config import Config
 from distance_formula import (
     distance_from_ratio,
     height_ratio
@@ -20,13 +21,6 @@ class DistanceEstimator:
       2. Upper body (head) - the head detected inside the
                              top of the detection box (fallback).
     """
-
-    # ------------------------------------------------------------
-    # Body proportion constants (fractions of body height)
-    # ------------------------------------------------------------
-
-    # Average head-to-body ratio (~7.5 heads tall).
-    HEAD_RATIO = 1.0 / 7.5
 
 
     def __init__(self, horizontal_fov, player_height=1.75, face_model=None):
@@ -290,7 +284,7 @@ class DistanceEstimator:
             return None
 
         real_head = (
-            self.player_height * self.HEAD_RATIO
+            self.player_height * Config.HEAD_RATIO
         )
 
         ratio = height_ratio(
@@ -367,3 +361,39 @@ class DistanceEstimator:
             return head, estimates
 
         return None, estimates
+
+    def distance_to_angle(self, distance):
+        """
+        Linear, proportional mapping from distance to a servo
+        angle, clamped to the configured range.
+
+        Args:
+            distance:
+                Estimated player-camera distance in meters, or
+                None when no distance is available.
+
+        Returns:
+            Angle in degrees within [MIN_ANGLE, MAX_ANGLE], or
+            None when distance is unknown.
+        """
+
+        if distance is None:
+
+            return None
+
+        if distance <= Config.MIN_DISTANCE:
+
+            return Config.MIN_ANGLE
+
+        if distance >= Config.MAX_DISTANCE:
+
+            return Config.MAX_ANGLE
+
+        return (
+            Config.MIN_ANGLE
+            + (
+                (distance - Config.MIN_DISTANCE)
+                / (Config.MAX_DISTANCE - Config.MIN_DISTANCE)
+            )
+            * (Config.MAX_ANGLE - Config.MIN_ANGLE)
+        )
