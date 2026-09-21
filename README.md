@@ -107,8 +107,11 @@ Press `q` to quit. 🚪 (In `--no-gui` mode use `Ctrl+C`.)
 Example terminal output:
 
 ```
-Current rotation: -20.13 degrees | Distance: 15.98 m
+Current rotation: -20.13 degrees | Distance: 15.98 m | FPS: 5.2
 ```
+
+When the player is out of frame (or truncated and no face found), the distance
+prints as `N/A (player out of frame)`.
 
 ## 🚀 Expected performance on the Pi Zero 2 W
 

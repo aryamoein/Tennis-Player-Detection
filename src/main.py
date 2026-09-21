@@ -220,6 +220,10 @@ def main(args):
          else Config.FRAME_SKIP) + 1
     )
 
+    last_no_player_log_time = 0.0
+
+    no_player_log_interval = 0.5
+
 
 
     while True:
@@ -270,6 +274,15 @@ def main(args):
 
 
         if last_person is None:
+
+            if now - last_no_player_log_time >= no_player_log_interval:
+
+                print(
+                    f"No player detected | "
+                    f"FPS: {fps:.1f}"
+                )
+
+                last_no_player_log_time = now
 
             if show_gui:
 
